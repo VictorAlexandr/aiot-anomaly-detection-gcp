@@ -1,0 +1,10 @@
+# requirements-dev.txt
+# Ferramentas de Linting e Formatting
+flake8
+black
+
+# Ferramentas de Teste
+pytest
+
+# Hooks de pré-commit
+pre-commit
