@@ -53,3 +53,4 @@ credentials.json
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints
+data/
