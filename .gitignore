@@ -54,3 +54,8 @@ credentials.json
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints
 data/
+
+# Terraform state and provider files
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup

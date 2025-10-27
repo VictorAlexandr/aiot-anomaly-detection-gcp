@@ -1,7 +1,9 @@
 // .devcontainer/devcontainer.json
 {
     "name": "AIoT Anomaly Detection Dev",
-    "image": "mcr.microsoft.com/devcontainers/python:3.10",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
     "customizations": {
         "vscode": {
             "settings": {
@@ -26,8 +28,6 @@
             ]
         }
     },
-    // Comando a ser executado após a criação do container
     "postCreateCommand": "pip install --user -r requirements-dev.txt",
-    // Mantenha o container em execução para evitar desligamentos prematuros
     "shutdownAction": "stopContainer"
 }
