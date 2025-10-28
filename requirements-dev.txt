@@ -8,3 +8,6 @@ pytest
 
 # Hooks de pré-commit
 pre-commit
+
+pandas
+google-cloud-pubsub

@@ -1,0 +1,5 @@
+fastapi
+uvicorn[standard]
+tensorflow==2.15.1
+pydantic
+python-json-logger # Para logging estruturado
