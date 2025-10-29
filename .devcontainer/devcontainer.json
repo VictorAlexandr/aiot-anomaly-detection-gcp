@@ -2,8 +2,14 @@
 {
     "name": "AIoT Anomaly Detection Dev",
     "build": {
-        "dockerfile": "Dockerfile"
+        "dockerfile": "dev.Dockerfile" // APONTA PARA O ARQUIVO RENOMEADO
     },
+
+    // ADICIONA O ACESSO AO DOCKER
+    "mounts": [
+        "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+    ],
+
     "customizations": {
         "vscode": {
             "settings": {

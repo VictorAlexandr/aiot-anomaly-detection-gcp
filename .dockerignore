@@ -1,0 +1,24 @@
+# .dockerignore
+
+# Ambiente de desenvolvimento
+.devcontainer/
+
+# Arquivos de estado e cache do Terraform
+infra/.terraform/
+infra/terraform.tfstate
+infra/terraform.tfstate.backup
+
+# Pasta de dados brutos
+data/
+
+# Cache do Python
+__pycache__/
+*.pyc
+
+# Arquivos do Git
+.git/
+.gitignore
+
+# Ambiente virtual (se usado localmente)
+.venv/
+venv/
