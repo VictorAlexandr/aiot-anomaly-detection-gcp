@@ -1,8 +1,10 @@
-# infra/main.tf (VERSÃO FINAL CORRIGIDA)
+# infra/main.tf (VERSÃO COMPLETA E CORRIGIDA)
+
+# --- RECURSOS DE INGESTÃO DE DADOS ---
 
 resource "google_pubsub_topic" "sensor_data" {
   project = var.gcp_project_id
-  name    = "aiot-sensor-data" # Nome correto do tópico
+  name    = "aiot-sensor-data"
 }
 
 resource "google_storage_bucket" "function_source_code" {
@@ -25,22 +27,62 @@ resource "google_storage_bucket_object" "function_source_zip" {
 }
 
 resource "google_cloudfunctions_function" "data_processor_function" {
-  // Usa o NOME STRING do projeto
+  // API da Cloud Function exige o NOME do projeto
   project = var.gcp_project_name
 
-  region = var.gcp_region
-  // Nome correto da função
-  name    = "aiot-data-processor"
-  runtime = "python310"
+  region              = var.gcp_region
+  name                = "aiot-data-processor"
+  runtime             = "python310"
+  available_memory_mb = 256
 
-  available_memory_mb   = 256
   source_archive_bucket = google_storage_bucket.function_source_code.name
   source_archive_object = google_storage_bucket_object.function_source_zip.name
   entry_point           = "process_sensor_data"
 
   event_trigger {
     event_type = "google.pubsub.topic.publish"
-    // Constrói o gatilho com o NOME STRING do projeto e o NOME do tópico
+    // E o gatilho também exige o NOME do projeto
     resource = "projects/${var.gcp_project_name}/topics/${google_pubsub_topic.sensor_data.name}"
   }
+}
+
+
+# --- RECURSOS DA API DE INFERÊNCIA ---
+
+resource "google_artifact_registry_repository" "api_images" {
+  provider = google-beta
+  // API do Artifact Registry exige o NOME do projeto
+  project       = var.gcp_project_name
+  location      = var.gcp_region
+  repository_id = "aiot-anomaly-api-repo"
+  description   = "Repositório para as imagens Docker da API de anomalia."
+  format        = "DOCKER"
+}
+
+resource "google_cloud_run_v2_service" "api_service" {
+  provider = google-beta
+  project  = var.gcp_project_name
+  name     = "aiot-anomaly-api"
+  location = var.gcp_region
+
+  deletion_protection = false
+  template {
+    containers {
+      image = "us-docker.pkg.dev/cloudrun/container/hello" # Usaremos um placeholder por enquanto
+
+      ports {
+        container_port = 8000 # A porta que nossa API expõe
+      }
+    }
+  }
+}
+
+# --- Políticas de IAM ---
+resource "google_cloud_run_v2_service_iam_member" "allow_public_access" {
+  provider = google-beta
+  project  = var.gcp_project_name
+  location = var.gcp_region
+  name     = google_cloud_run_v2_service.api_service.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
 }
