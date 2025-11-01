@@ -1,0 +1,64 @@
+# .github/workflows/deploy.yml
+
+name: Build and Deploy to Cloud Run
+
+# Aciona o workflow em pushes para a branch 'main'
+on:
+  push:
+    branches:
+      - main
+
+# Define as variáveis de ambiente para o job
+env:
+  # SUBSTITUA PELOS SEUS VALORES
+  GCP_PROJECT_ID: "129263070097"
+  GCP_PROJECT_NAME: "aiot-anomaly-detection"
+  GCP_REGION: "us-central1"
+  GAR_REPO_NAME: "aiot-anomaly-api-repo" # O nome que demos ao Artifact Registry no Terraform
+  SERVICE_NAME: "aiot-anomaly-api" # O nome que demos ao serviço do Cloud Run no Terraform
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest # O workflow rodará em uma máquina virtual Linux gerenciada pelo GitHub
+
+    steps:
+      # 1. Checkout do Código
+      # Baixa o seu código para dentro da máquina virtual do workflow
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Autenticação com a GCP
+      # Usa o Service Account Key que salvamos nos GitHub Secrets (no Card 1)
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      # 3. Configurar o Docker para autenticar com o Artifact Registry
+      # Permite que os comandos 'docker' subsequentes possam fazer push para o nosso registro privado
+      - name: Configure Docker
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
+
+      # 4. Construir e Enviar a Imagem Docker
+      # Usa a 'build-push-action' oficial do Docker para simplificar o processo
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./api.Dockerfile # Especifica nosso Dockerfile da API
+          push: true # Diz à ação para fazer o push da imagem após o build
+          # Cria duas tags para a imagem: 'latest' e uma com o hash do commit (boa prática)
+          tags: |
+            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_NAME }}/${{ env.GAR_REPO_NAME }}/${{ env.SERVICE_NAME }}:latest
+            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_NAME }}/${{ env.GAR_REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+
+      # 5. Implantar a Nova Imagem no Cloud Run
+      # Usa o gcloud CLI para atualizar nosso serviço do Cloud Run, apontando para a nova imagem que acabamos de enviar
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_NAME }}/${{ env.GAR_REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+            --region ${{ env.GCP_REGION }} \
+            --project ${{ env.GCP_PROJECT_NAME }} \
+            --allow-unauthenticated # Mantém o serviço público, como definimos no Terraform
